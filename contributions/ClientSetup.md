@@ -67,6 +67,11 @@ On your development machine, please ensure that:
 
         - If you want to use the backend server running on your local, you do not need to pass a parameter when running `start-https.sh`.
 
+          ```bash
+          cd app/client
+          ./start-https.sh http://host.docker.internal:8080
+          ```
+
 ### Steps to build & run the code:
 
 1. Run `yarn install`.

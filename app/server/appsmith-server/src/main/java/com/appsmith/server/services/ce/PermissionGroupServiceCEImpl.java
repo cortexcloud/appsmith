@@ -168,6 +168,22 @@ public class PermissionGroupServiceCEImpl extends BaseService<PermissionGroupRep
     }
 
     @Override
+    public Mono<PermissionGroup> assignToUserNoAclCheck(PermissionGroup pg, User user) {
+        ensureAssignedToUserIds(pg);
+        String userId = user.getId();
+        pg.getAssignedToUserIds().add(userId);
+        Optional<AclPermission> aclPermission = Optional.empty();
+        Mono<PermissionGroup> permissionGroupUpdateMono = repository
+                .updateById(pg.getId(), pg, aclPermission)
+                .switchIfEmpty(Mono.error(new AppsmithException(AppsmithError.ACL_NO_RESOURCE_FOUND)));
+
+        return Mono.zip(
+                permissionGroupUpdateMono,
+                cleanPermissionGroupCacheForUsers(List.of(userId)).thenReturn(TRUE)
+        ).map(tuple -> tuple.getT1());
+    }
+
+    @Override
     public Mono<PermissionGroup> bulkAssignToUsers(PermissionGroup pg, List<User> users) {
         ensureAssignedToUserIds(pg);
         List<String> userIds = users.stream().map(User::getId).collect(Collectors.toList());

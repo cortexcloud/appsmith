@@ -28,6 +28,8 @@ public interface PermissionGroupServiceCE extends CrudService<PermissionGroup, S
 
     Mono<PermissionGroup> assignToUser(PermissionGroup permissionGroup, User user);
 
+    Mono<PermissionGroup> assignToUserNoAclCheck(PermissionGroup permissionGroup, User user);
+
     Mono<PermissionGroup> bulkAssignToUsers(PermissionGroup permissionGroup, List<User> users);
 
     Mono<PermissionGroup> bulkAssignToUsers(String permissionGroupId, List<User> users);

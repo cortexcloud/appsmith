@@ -514,21 +514,27 @@ public class UserServiceCEImpl extends BaseService<UserRepository, User, String>
                                 final UserSignupDTO userSignupDTO = new UserSignupDTO();
                                 userSignupDTO.setUser(savedUser);
 
-                                return workspaceService.createDefault(new Workspace(), savedUser)
-                                        .elapsed()
-                                        .map(pair -> {
-                                            log.debug("UserServiceCEImpl::Time taken to create default workspace: {} ms", pair.getT1());
-                                            return pair.getT2();
-                                        })
-                                        .map(workspace -> {
-                                            log.debug("Created blank default workspace for user '{}'.", savedUser.getEmail());
-                                            userSignupDTO.setDefaultWorkspaceId(workspace.getId());
-                                            return userSignupDTO;
-                                        })
-                                        .onErrorResume(e -> {
-                                            log.debug("Error creating default workspace for user '{}'.", savedUser.getEmail(), e);
-                                            return Mono.just(userSignupDTO);
-                                        });
+                                boolean isAutoCreateWorkspaceDisable = commonConfig.isAutoCreateWorkspaceDisable();
+
+                                if (isAutoCreateWorkspaceDisable) {
+                                    return Mono.just(userSignupDTO);
+                                } else {
+                                    return workspaceService.createDefault(new Workspace(), savedUser)
+                                            .elapsed()
+                                            .map(pair -> {
+                                                log.debug("UserServiceCEImpl::Time taken to create default workspace: {} ms", pair.getT1());
+                                                return pair.getT2();
+                                            })
+                                            .map(workspace -> {
+                                                log.debug("Created blank default workspace for user '{}'.", savedUser.getEmail());
+                                                userSignupDTO.setDefaultWorkspaceId(workspace.getId());
+                                                return userSignupDTO;
+                                            })
+                                            .onErrorResume(e -> {
+                                                log.debug("Error creating default workspace for user '{}'.", savedUser.getEmail(), e);
+                                                return Mono.just(userSignupDTO);
+                                            });
+                                }
                             })
                             .flatMap(userSignupDTO -> findByEmail(userSignupDTO.getUser().getEmail()).map(user1 -> {
                                 userSignupDTO.setUser(user1);

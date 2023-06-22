@@ -105,6 +105,7 @@ export const SettingCategories = {
   FORM_AUTH: "form-login",
   GOOGLE_AUTH: "google-auth",
   GITHUB_AUTH: "github-auth",
+  KEYCLOAK_AUTH: "keycloak-auth",
   AUDIT_LOGS: "audit-logs",
   ACCESS_CONTROL: "access-control",
   BRANDING: "branding",
@@ -113,6 +114,7 @@ export const SettingCategories = {
 export const SettingSubCategories = {
   GOOGLE: "google signup",
   GITHUB: "github signup",
+  KEYCLOAK: "keycloak signup",
   FORMLOGIN: "form login",
 };
 

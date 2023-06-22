@@ -1,6 +1,7 @@
 import { tenantConfigConnection } from "@appsmith/constants/tenantConstants";
 import { ADMIN_SETTINGS_CATEGORY_DEFAULT_PATH } from "constants/routes";
 import type { User } from "constants/userConstants";
+import { KeycloakOAuthURL } from "@appsmith/constants/ApiConstants";
 
 /* settings is the updated & unsaved settings on Admin settings page */
 export const saveAllowed = (
@@ -39,7 +40,9 @@ export const showAdminSettings = (user?: User): boolean => {
 };
 
 export const getLoginUrl = (method: string): string => {
-  const urls: Record<string, string> = {};
+  const urls: Record<string, string> = {
+    keycloak: KeycloakOAuthURL,
+  };
 
   return urls[method];
 };

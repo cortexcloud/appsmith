@@ -20,6 +20,8 @@ public interface AppsmithRepository<T> {
 
     Mono<T> updateById(String id, T resource, AclPermission permission);
 
+    Mono<T> updateById(String id, T resource, Optional<AclPermission> permission);
+
     Flux<T> queryAll(List<Criteria> criterias, AclPermission permission);
 
     Flux<T> queryAll(List<Criteria> criterias, AclPermission permission, Sort sort);

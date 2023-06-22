@@ -39,6 +39,9 @@ public class CommonConfig {
     @Setter(AccessLevel.NONE)
     private Set<String> adminEmails = Collections.emptySet();
 
+    @Setter(AccessLevel.NONE)
+    private boolean isAutoCreateWorkspaceDisable = false;
+
     @Value("${oauth2.allowed-domains}")
     private String allowedDomainsForOauthString;
 
@@ -125,6 +128,12 @@ public class CommonConfig {
     public void setSignupDisabled(@Value("${signup.disabled}") String value) {
         // If `true`, then disable signup. If anything else, including empty string, then signups will be enabled.
         isSignupDisabled = "true".equalsIgnoreCase(value);
+    }
+
+    @Autowired
+    public void setAutoCreateWorkspaceDisable(@Value("${appsmith.disable-auto-create-workspace}") String value) {
+        // If `true`, then disable signup. If anything else, including empty string, then signups will be enabled.
+        isAutoCreateWorkspaceDisable = "true".equalsIgnoreCase(value);
     }
 
     public String getRtsBaseUrl() {

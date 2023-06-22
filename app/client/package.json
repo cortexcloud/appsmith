@@ -9,6 +9,10 @@
     "node": "^16.14.0",
     "yarn": "^3.5.1"
   },
+  "volta": {
+    "node": "16.14.0",
+    "yarn": "3.5.1"
+  },
   "packageManager": "yarn@3.5.1",
   "cracoConfig": "craco.dev.config.js",
   "workspaces": [

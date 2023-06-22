@@ -5,16 +5,13 @@ import com.appsmith.server.constants.FieldName;
 import com.appsmith.server.domains.PermissionGroup;
 import com.appsmith.server.domains.User;
 import com.appsmith.server.domains.Workspace;
+import com.appsmith.server.dtos.AddUserDTO;
 import com.appsmith.server.dtos.InviteUsersDTO;
 import com.appsmith.server.exceptions.AppsmithError;
 import com.appsmith.server.exceptions.AppsmithException;
 import com.appsmith.server.notifications.EmailSender;
 import com.appsmith.server.repositories.UserRepository;
-import com.appsmith.server.services.AnalyticsService;
-import com.appsmith.server.services.PermissionGroupService;
-import com.appsmith.server.services.SessionUserService;
-import com.appsmith.server.services.UserService;
-import com.appsmith.server.services.WorkspaceService;
+import com.appsmith.server.services.*;
 import com.appsmith.server.solutions.PermissionGroupPermission;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.CollectionUtils;
@@ -42,6 +39,7 @@ public class UserAndAccessManagementServiceCEImpl implements UserAndAccessManage
     private final UserService userService;
     private final EmailSender emailSender;
     private final PermissionGroupPermission permissionGroupPermission;
+    private final TenantService tenantService;
 
     public UserAndAccessManagementServiceCEImpl(SessionUserService sessionUserService,
                                                 PermissionGroupService permissionGroupService,
@@ -50,7 +48,8 @@ public class UserAndAccessManagementServiceCEImpl implements UserAndAccessManage
                                                 AnalyticsService analyticsService,
                                                 UserService userService,
                                                 EmailSender emailSender,
-                                                PermissionGroupPermission permissionGroupPermission) {
+                                                PermissionGroupPermission permissionGroupPermission,
+                                                TenantService tenantService) {
 
         this.sessionUserService = sessionUserService;
         this.permissionGroupService = permissionGroupService;
@@ -60,6 +59,7 @@ public class UserAndAccessManagementServiceCEImpl implements UserAndAccessManage
         this.userService = userService;
         this.emailSender = emailSender;
         this.permissionGroupPermission = permissionGroupPermission;
+        this.tenantService = tenantService;
     }
 
     /**
@@ -186,6 +186,30 @@ public class UserAndAccessManagementServiceCEImpl implements UserAndAccessManage
                 });
 
         return bulkAddUserResultMono.then(sendAnalyticsEventMono).then(inviteUsersMono);
+    }
+
+    public Mono<User> addUserToWorkspace(AddUserDTO addUserDTO) {
+        log.debug("permission groups permission: {}", permissionGroupPermission.getAssignPermission());
+        log.debug("permission group id: {}", addUserDTO.getPermissionGroupId());
+        Mono<PermissionGroup> permissionGroupMono = permissionGroupService.findById(addUserDTO.getPermissionGroupId())
+                .switchIfEmpty(Mono.error(new AppsmithException(AppsmithError.ACTION_IS_NOT_AUTHORIZED, "Permission is empty.")));
+
+        // Get the user
+        Mono<User> userMono = tenantService.getDefaultTenantId()
+                .flatMap(tenantId -> userRepository.findByEmailAndTenantId(addUserDTO.getUsername(), tenantId))
+                .switchIfEmpty(Mono.error(new AppsmithException(AppsmithError.NO_RESOURCE_FOUND, FieldName.USER, addUserDTO.getUsername())))
+                .cache();
+
+        // Add user to group
+        Mono<PermissionGroup> permissionGroupResultMono = permissionGroupMono
+                .flatMap(permissionGroup -> {
+                    log.debug("Permission Group {}", permissionGroup);
+                    return userMono.flatMap(user -> {
+                        log.debug("User {}", user);
+                        return permissionGroupService.assignToUserNoAclCheck(permissionGroup, user);
+                    });
+                });
+        return permissionGroupResultMono.then(userMono);
     }
 
     private Mono<Boolean> throwErrorIfUserAlreadyExistsInWorkspace(User user,

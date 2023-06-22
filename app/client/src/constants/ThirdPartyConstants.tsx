@@ -13,6 +13,8 @@ export const GOOGLE_SIGNUP_SETUP_DOC =
   "https://docs.appsmith.com/getting-started/setup/instance-configuration/authentication/google-login";
 export const GITHUB_SIGNUP_SETUP_DOC =
   "https://docs.appsmith.com/getting-started/setup/instance-configuration/authentication/github-login";
+export const KEYCLOAK_SIGNUP_SETUP_DOC =
+  "https://docs.appsmith.com/getting-started/setup/instance-configuration/authentication/keycloak-login";
 export const OIDC_SIGNUP_SETUP_DOC =
   "https://docs.appsmith.com/getting-started/setup/instance-configuration/authentication/openid-connect-oidc";
 export const SAML_SIGNUP_SETUP_DOC =

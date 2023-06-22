@@ -2,12 +2,14 @@ package com.appsmith.server.authentication.handlers.ce;
 
 import com.appsmith.external.constants.AnalyticsEvents;
 import com.appsmith.server.authentication.handlers.CustomServerOAuth2AuthorizationRequestResolver;
+import com.appsmith.server.configurations.SSOConfig;
 import com.appsmith.server.constants.FieldName;
 import com.appsmith.server.constants.Security;
 import com.appsmith.server.domains.Application;
 import com.appsmith.server.domains.LoginSource;
 import com.appsmith.server.domains.User;
 import com.appsmith.server.domains.Workspace;
+import com.appsmith.server.dtos.AddUserDTO;
 import com.appsmith.server.helpers.RedirectHelper;
 import com.appsmith.server.repositories.UserRepository;
 import com.appsmith.server.repositories.WorkspaceRepository;
@@ -17,6 +19,7 @@ import com.appsmith.server.services.SessionUserService;
 import com.appsmith.server.services.UserDataService;
 import com.appsmith.server.services.WorkspaceService;
 import com.appsmith.server.solutions.ForkExamplesWorkspace;
+import com.appsmith.server.solutions.UserAndAccessManagementService;
 import com.appsmith.server.solutions.WorkspacePermission;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -59,6 +62,8 @@ public class AuthenticationSuccessHandlerCE implements ServerAuthenticationSucce
     private final WorkspaceService workspaceService;
     private final ApplicationPageService applicationPageService;
     private final WorkspacePermission workspacePermission;
+    private final SSOConfig ssoConfig;
+    private final UserAndAccessManagementService userAndAccessManagementService;
 
     /**
      * On authentication success, we send a redirect to the endpoint that serve's the user's profile.
@@ -85,8 +90,10 @@ public class AuthenticationSuccessHandlerCE implements ServerAuthenticationSucce
             String defaultWorkspaceId
     ) {
         log.debug("Login succeeded for user: {}", authentication.getPrincipal());
+        log.debug("Default workspace id: {}", defaultWorkspaceId);
         Mono<Void> redirectionMono;
         User user = (User) authentication.getPrincipal();
+        boolean isSSOMapperEnable = ssoConfig.isSSOMapperEnable();
 
         if (authentication instanceof OAuth2AuthenticationToken) {
             // In case of OAuth2 based authentication, there is no way to identify if this was a user signup (new user
@@ -106,27 +113,27 @@ public class AuthenticationSuccessHandlerCE implements ServerAuthenticationSucce
                 // Update the user in separate thread
                 userRepository.save(user).subscribeOn(Schedulers.boundedElastic()).subscribe();
             }
-            if (isFromSignup) {
+            if (isFromSignup && !isSSOMapperEnable) {
                 boolean finalIsFromSignup = isFromSignup;
                 redirectionMono = workspaceService.isCreateWorkspaceAllowed(Boolean.TRUE)
-                        .elapsed()
-                        .map(pair -> {
-                            log.debug("AuthenticationSuccessHandlerCE::Time taken to check if workspace creation allowed: {} ms", pair.getT1());
-                            return pair.getT2();
-                        })
-                        .flatMap(isCreateWorkspaceAllowed -> {
-                            if (isCreateWorkspaceAllowed) {
-                                return createDefaultApplication(defaultWorkspaceId, authentication)
-                                        .elapsed()
-                                        .map(pair -> {
-                                            log.debug("AuthenticationSuccessHandlerCE::Time taken to create default application: {} ms", pair.getT1());
-                                            return pair.getT2();
-                                        })
-                                        .flatMap(defaultApplication ->
-                                                handleOAuth2Redirect(webFilterExchange, defaultApplication, finalIsFromSignup));
-                            }
-                            return handleOAuth2Redirect(webFilterExchange, null, finalIsFromSignup);
-                        });
+                            .elapsed()
+                            .map(pair -> {
+                                log.debug("AuthenticationSuccessHandlerCE::Time taken to check if workspace creation allowed: {} ms", pair.getT1());
+                                return pair.getT2();
+                            })
+                            .flatMap(isCreateWorkspaceAllowed -> {
+                                if (isCreateWorkspaceAllowed) {
+                                    return createDefaultApplication(defaultWorkspaceId, authentication)
+                                            .elapsed()
+                                            .map(pair -> {
+                                                log.debug("AuthenticationSuccessHandlerCE::Time taken to create default application: {} ms", pair.getT1());
+                                                return pair.getT2();
+                                            })
+                                            .flatMap(defaultApplication ->
+                                                    handleOAuth2Redirect(webFilterExchange, defaultApplication, finalIsFromSignup));
+                                }
+                                return handleOAuth2Redirect(webFilterExchange, null, finalIsFromSignup);
+                            });
             } else {
                 redirectionMono = handleOAuth2Redirect(webFilterExchange, null, isFromSignup);
             }
@@ -178,7 +185,17 @@ public class AuthenticationSuccessHandlerCE implements ServerAuthenticationSucce
                                         FieldName.MODE_OF_LOGIN, modeOfLogin
                                 )
                         ));
-                        monos.add(examplesWorkspaceCloner.forkExamplesWorkspace());
+
+                        if (isSSOMapperEnable) {
+                            log.info("Start mapping user to defined workspace with permission");
+                            AddUserDTO addUserDTO = new AddUserDTO();
+                            addUserDTO.setUsername(currentUser.getUsername());
+                            addUserDTO.setPermissionGroupId("648d63c14fd86943f8037385");
+                            log.debug("Mappping user {}", currentUser.getUsername());
+                            monos.add(userAndAccessManagementService.addUserToWorkspace(addUserDTO));
+                        } else {
+                            monos.add(examplesWorkspaceCloner.forkExamplesWorkspace());
+                        }
                     }
 
                     monos.add(analyticsService.sendObjectEvent(
@@ -251,6 +268,8 @@ public class AuthenticationSuccessHandlerCE implements ServerAuthenticationSucce
         ServerWebExchange exchange = webFilterExchange.getExchange();
         String state = exchange.getRequest().getQueryParams().getFirst(Security.QUERY_PARAMETER_STATE);
         String redirectUrl = RedirectHelper.DEFAULT_REDIRECT_URL;
+        log.debug("State: {}", state);
+        log.debug("Redirect URL: {}", redirectUrl);
         if (state != null && !state.isEmpty()) {
             String[] stateArray = state.split("@");
             for (String stateVar : stateArray) {

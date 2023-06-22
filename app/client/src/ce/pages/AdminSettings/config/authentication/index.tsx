@@ -3,6 +3,7 @@ import {
   GITHUB_SIGNUP_SETUP_DOC,
   GOOGLE_SIGNUP_SETUP_DOC,
   SIGNUP_RESTRICTION_DOC,
+  KEYCLOAK_SIGNUP_SETUP_DOC,
 } from "constants/ThirdPartyConstants";
 import type { AdminConfigType } from "@appsmith/pages/AdminSettings/config/types";
 import {
@@ -17,6 +18,7 @@ import Google from "assets/images/Google.png";
 import SamlSso from "assets/images/saml.svg";
 import OIDC from "assets/images/oidc.svg";
 import Github from "assets/images/Github.png";
+import Keycloak from "assets/images/Keycloak.png";
 import Lock from "assets/images/lock-password-line.svg";
 import { ORIGIN_URI_FORM, REDIRECT_URL_FORM } from "@appsmith/constants/forms";
 import { useSelector } from "react-redux";
@@ -28,6 +30,7 @@ import {
   FORM_LOGIN_DESC,
   GITHUB_AUTH_DESC,
   GOOGLE_AUTH_DESC,
+  KEYCLOAK_AUTH_DESC,
   OIDC_AUTH_DESC,
   SAML_AUTH_DESC,
   createMessage,
@@ -204,6 +207,51 @@ export const GithubAuth: AdminConfigType = {
   ],
 };
 
+export const KeycloakAuth: AdminConfigType = {
+  type: SettingCategories.KEYCLOAK_AUTH,
+  controlType: SettingTypes.GROUP,
+  title: "Keycloak authentication",
+  subText: createMessage(KEYCLOAK_AUTH_DESC),
+  canSave: true,
+  settings: [
+    {
+      id: "APPSMITH_OAUTH2_KEYCLOAK_READ_MORE",
+      category: SettingCategories.KEYCLOAK_AUTH,
+      subCategory: SettingSubCategories.KEYCLOAK,
+      controlType: SettingTypes.LINK,
+      label: "How to configure?",
+      url: KEYCLOAK_SIGNUP_SETUP_DOC,
+    },
+    {
+      id: "APPSMITH_OAUTH2_KEYCLOAK_CLIENT_ID",
+      category: SettingCategories.KEYCLOAK_AUTH,
+      subCategory: SettingSubCategories.KEYCLOAK,
+      controlType: SettingTypes.TEXTINPUT,
+      controlSubType: SettingSubtype.TEXT,
+      label: "Client ID",
+      isRequired: true,
+    },
+    {
+      id: "APPSMITH_OAUTH2_KEYCLOAK_CLIENT_SECRET",
+      category: SettingCategories.KEYCLOAK_AUTH,
+      subCategory: SettingSubCategories.KEYCLOAK,
+      controlType: SettingTypes.TEXTINPUT,
+      controlSubType: SettingSubtype.TEXT,
+      label: "Client secret",
+      isRequired: true,
+    },
+    {
+      id: "APPSMITH_OAUTH2_KEYCLOAK_PROVIDER_ISSUER_URL",
+      category: SettingCategories.KEYCLOAK_AUTH,
+      subCategory: SettingSubCategories.KEYCLOAK,
+      controlType: SettingTypes.TEXTINPUT,
+      controlSubType: SettingSubtype.TEXT,
+      label: "Issuer url",
+      isRequired: true,
+    },
+  ],
+};
+
 export const FormAuthCallout: AuthMethodType = {
   id: "APPSMITH_FORM_LOGIN_AUTH",
   category: SettingCategories.FORM_AUTH,
@@ -229,6 +277,14 @@ export const GithubAuthCallout: AuthMethodType = {
   image: Github,
 };
 
+export const KeycloakAuthCallout: AuthMethodType = {
+  id: "APPSMITH_KEYCLOAK_AUTH",
+  category: SettingCategories.KEYCLOAK_AUTH,
+  label: "Keycloak",
+  subText: createMessage(KEYCLOAK_AUTH_DESC),
+  image: Keycloak,
+};
+
 export const SamlAuthCallout: AuthMethodType = {
   id: "APPSMITH_SAML_AUTH",
   category: "saml",
@@ -252,6 +308,7 @@ const AuthMethods = [
   SamlAuthCallout,
   GoogleAuthCallout,
   GithubAuthCallout,
+  KeycloakAuthCallout,
   FormAuthCallout,
 ];
 
@@ -262,6 +319,8 @@ function AuthMain() {
     socialLoginList.includes("google");
   GithubAuth.isConnected = GithubAuthCallout.isConnected =
     socialLoginList.includes("github");
+  KeycloakAuth.isConnected = KeycloakAuthCallout.isConnected =
+    socialLoginList.includes("keycloak");
   return <AuthPage authMethods={AuthMethods} />;
 }
 
