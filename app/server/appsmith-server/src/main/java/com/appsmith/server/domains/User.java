@@ -104,6 +104,9 @@ public class User extends BaseDomain implements UserDetails, OidcUser {
     @JsonView(Views.Public.class)
     private String tenantId;
 
+    @JsonView(Views.Public.class)
+    private OidcIdToken idToken;
+
     // TODO: Populate these attributes for a user. Generally required for OAuth2 logins
     @Override
     @JsonView(Views.Public.class)
@@ -162,11 +165,11 @@ public class User extends BaseDomain implements UserDetails, OidcUser {
         return null;
     }
 
-    @Override
-    @JsonView(Views.Public.class)
-    public OidcIdToken getIdToken() {
-        return null;
-    }
+//    @Override
+//    @JsonView(Views.Public.class)
+//    public OidcIdToken getIdToken() {
+//        return this.idToken;
+//    }
 
     @Transient
     @JsonView(Views.Internal.class)

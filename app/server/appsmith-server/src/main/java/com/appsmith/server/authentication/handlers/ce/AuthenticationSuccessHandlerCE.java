@@ -27,11 +27,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.web.server.DefaultServerRedirectStrategy;
 import org.springframework.security.web.server.ServerRedirectStrategy;
 import org.springframework.security.web.server.WebFilterExchange;
 import org.springframework.security.web.server.authentication.ServerAuthenticationSuccessHandler;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -89,8 +89,6 @@ public class AuthenticationSuccessHandlerCE implements ServerAuthenticationSucce
             boolean isFromSignup,
             String defaultWorkspaceId
     ) {
-        log.debug("Login succeeded for user: {}", authentication.getPrincipal());
-        log.debug("Default workspace id: {}", defaultWorkspaceId);
         Mono<Void> redirectionMono;
         User user = (User) authentication.getPrincipal();
         boolean isSSOMapperEnable = ssoConfig.isSSOMapperEnable();
@@ -186,15 +184,19 @@ public class AuthenticationSuccessHandlerCE implements ServerAuthenticationSucce
                                 )
                         ));
 
-                        if (isSSOMapperEnable) {
-                            log.info("Start mapping user to defined workspace with permission");
+                        if (!isSSOMapperEnable) {
+                            monos.add(examplesWorkspaceCloner.forkExamplesWorkspace());
+                        }
+                    }
+
+                    if (isSSOMapperEnable) {
+                        OidcIdToken idToken = currentUser.getIdToken();
+                        String appSmithPermissionGroupId = idToken.getClaimAsString("appSmithPermissionGroupId");
+                        if (appSmithPermissionGroupId != null) {
                             AddUserDTO addUserDTO = new AddUserDTO();
                             addUserDTO.setUsername(currentUser.getUsername());
-                            addUserDTO.setPermissionGroupId("648d63c14fd86943f8037385");
-                            log.debug("Mappping user {}", currentUser.getUsername());
+                            addUserDTO.setPermissionGroupId(appSmithPermissionGroupId);
                             monos.add(userAndAccessManagementService.addUserToWorkspace(addUserDTO));
-                        } else {
-                            monos.add(examplesWorkspaceCloner.forkExamplesWorkspace());
                         }
                     }
 

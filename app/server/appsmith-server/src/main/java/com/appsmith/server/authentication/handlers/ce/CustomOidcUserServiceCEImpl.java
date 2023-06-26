@@ -1,5 +1,6 @@
 package com.appsmith.server.authentication.handlers.ce;
 
+import com.appsmith.server.configurations.SSOConfig;
 import com.appsmith.server.domains.LoginSource;
 import com.appsmith.server.domains.User;
 import com.appsmith.server.domains.UserState;
@@ -12,6 +13,7 @@ import org.springframework.security.oauth2.client.oidc.userinfo.OidcReactiveOAut
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.util.StringUtils;
@@ -28,11 +30,13 @@ public class CustomOidcUserServiceCEImpl extends OidcReactiveOAuth2UserService {
 
     private UserRepository repository;
     private UserService userService;
+    private SSOConfig ssoConfig;
 
     @Autowired
-    public CustomOidcUserServiceCEImpl(UserRepository repository, UserService userService) {
+    public CustomOidcUserServiceCEImpl(UserRepository repository, UserService userService, SSOConfig ssoConfig) {
         this.repository = repository;
         this.userService = userService;
+        this.ssoConfig = ssoConfig;
     }
 
     @Override
@@ -70,6 +74,14 @@ public class CustomOidcUserServiceCEImpl extends OidcReactiveOAuth2UserService {
                     if (!user.getIsEnabled()) {
                         user.setIsEnabled(true);
                         return repository.save(user);
+                    }
+                    return Mono.just(user);
+                })
+                .flatMap(user -> {
+                    boolean isSSOMapperEnable = ssoConfig.isSSOMapperEnable();
+                    if (isSSOMapperEnable) {
+                        OidcIdToken idToken = oidcUser.getIdToken();
+                        user.setIdToken(idToken);
                     }
                     return Mono.just(user);
                 })

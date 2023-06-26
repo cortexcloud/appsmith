@@ -1,8 +1,10 @@
 package com.appsmith.server.authentication.handlers;
 
 import com.appsmith.server.authentication.handlers.ce.CustomOidcUserServiceCEImpl;
+import com.appsmith.server.configurations.SSOConfig;
 import com.appsmith.server.repositories.UserRepository;
 import com.appsmith.server.services.UserService;
+import com.appsmith.server.solutions.UserAndAccessManagementService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
@@ -17,11 +19,13 @@ public class CustomOidcUserServiceImpl extends CustomOidcUserServiceCEImpl
 
     private UserRepository repository;
     private UserService userService;
+    private SSOConfig ssoConfig;
 
     @Autowired
-    public CustomOidcUserServiceImpl(UserRepository repository, UserService userService) {
-        super(repository, userService);
+    public CustomOidcUserServiceImpl(UserRepository repository, UserService userService, SSOConfig ssoConfig) {
+        super(repository, userService, ssoConfig);
         this.repository = repository;
         this.userService = userService;
+        this.ssoConfig = ssoConfig;
     }
 }
