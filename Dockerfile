@@ -60,6 +60,10 @@ RUN mkdir -p ./backend ./editor ./rts ./backend/plugins ./templates ./utils
 COPY ${JAR_FILE} backend/server.jar
 COPY ${PLUGIN_JARS} backend/plugins/
 
+# Add Elastic APM Java Agent
+COPY ./app/server/dist/elastic-apm-agent-1.43.0.jar backend/elastic-apm-agent.jar
+#RUN curl -o backend/elastic-apm-agent.jar -L https://oss.sonatype.org/service/local/artifact/maven/redirect?r=releases&g=co.elastic.apm&a=elastic-apm-agent&v=LATEST
+
 # Add client UI - Application Layer
 COPY ./app/client/build editor/
 
