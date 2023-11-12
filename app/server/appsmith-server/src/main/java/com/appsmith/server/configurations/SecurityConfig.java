@@ -97,6 +97,12 @@ public class SecurityConfig {
     @Setter(AccessLevel.NONE)
     private int authSessionMax = 30;
 
+    @Setter(AccessLevel.NONE)
+    private String authSessionDomain;
+
+    @Setter(AccessLevel.NONE)
+    private String authSessionName;
+
     @Autowired
     private void setAuthSessionOnBrowserClose(@Value("${auth.session.on-browser-close}") String value) {
         authSessionOnBrowserClose = "true".equalsIgnoreCase(value);
@@ -105,6 +111,16 @@ public class SecurityConfig {
     @Autowired
     private void setAuthSessionMax(@Value("${auth.session.max}") String value) {
         authSessionMax = Integer.parseInt(value);
+    }
+
+    @Autowired
+    private void setAuthSessionDomain(@Value("${auth.session.domain}") String value) {
+        authSessionDomain = value;
+    }
+
+    @Autowired
+    private void setAuthSessionName(@Value("${auth.session.name}") String value) {
+        authSessionName = value;
     }
 
     /**
@@ -206,13 +222,15 @@ public class SecurityConfig {
     @Bean
     public WebSessionIdResolver webSessionIdResolver() {
         CookieWebSessionIdResolver resolver = new CookieWebSessionIdResolver();
+        resolver.setCookieName(authSessionName);
         // Setting the max age to 30 days so that the cookie doesn't expire on browser close
         // If the max age is not set, some browsers will default to deleting the cookies on session close.
         if (!authSessionOnBrowserClose) {
             resolver.setCookieMaxAge(Duration.of(authSessionMax, DAYS));
         }
         resolver.addCookieInitializer((builder) -> builder.path("/"));
-        resolver.addCookieInitializer((builder) -> builder.sameSite("Lax"));
+        resolver.addCookieInitializer((builder) -> builder.sameSite("None"));
+        resolver.addCookieInitializer((builder) -> builder.domain(authSessionDomain));
         return resolver;
     }
 
