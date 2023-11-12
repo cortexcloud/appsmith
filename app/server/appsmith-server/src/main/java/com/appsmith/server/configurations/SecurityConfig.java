@@ -12,6 +12,9 @@ import com.appsmith.server.helpers.RedirectHelper;
 import com.appsmith.server.services.AnalyticsService;
 import com.appsmith.server.services.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +37,7 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.adapter.ForwardedHeaderTransformer;
 import org.springframework.web.server.session.CookieWebSessionIdResolver;
 import org.springframework.web.server.session.WebSessionIdResolver;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -50,6 +54,8 @@ import static com.appsmith.server.constants.Url.USAGE_PULSE_URL;
 import static com.appsmith.server.constants.Url.USER_URL;
 import static java.time.temporal.ChronoUnit.DAYS;
 
+@Getter
+@Setter
 @EnableWebFluxSecurity
 @EnableReactiveMethodSecurity
 @Configuration
@@ -84,6 +90,22 @@ public class SecurityConfig {
 
     @Autowired
     private RedirectHelper redirectHelper;
+
+    @Setter(AccessLevel.NONE)
+    private boolean authSessionOnBrowserClose = false;
+
+    @Setter(AccessLevel.NONE)
+    private int authSessionMax = 30;
+
+    @Autowired
+    private void setAuthSessionOnBrowserClose(@Value("${auth.session.on-browser-close}") String value) {
+        authSessionOnBrowserClose = "true".equalsIgnoreCase(value);
+    }
+
+    @Autowired
+    private void setAuthSessionMax(@Value("${auth.session.max}") String value) {
+        authSessionMax = Integer.parseInt(value);
+    }
 
     /**
      * This routerFunction is required to map /public/** endpoints to the src/main/resources/public folder
@@ -186,7 +208,9 @@ public class SecurityConfig {
         CookieWebSessionIdResolver resolver = new CookieWebSessionIdResolver();
         // Setting the max age to 30 days so that the cookie doesn't expire on browser close
         // If the max age is not set, some browsers will default to deleting the cookies on session close.
-        resolver.setCookieMaxAge(Duration.of(30, DAYS));
+        if (!authSessionOnBrowserClose) {
+            resolver.setCookieMaxAge(Duration.of(authSessionMax, DAYS));
+        }
         resolver.addCookieInitializer((builder) -> builder.path("/"));
         resolver.addCookieInitializer((builder) -> builder.sameSite("Lax"));
         return resolver;
